@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghost
+  template:
+    metadata:
+      labels:
+        app: ghost
+    spec:
+      initContainers:
+        - name: check-db
+          image: busybox:1.28
+          command: ['sh', '-c', '/opt/script.sh']
+          volumeMounts:
+          - name: ghost-volume
+            mountPath: /opt
+      containers:
+        - name: ghost
+          image: omegazyadav/ghost:200914-91fcc374
+          ports:
+            - containerPort: 2368
+          env:
+            - name: url 
+              value: http://ghost.omega.com
+            - name: database__connection__host
+              value: db
+            - name: database__connection__user
+              value: root
+            - name: database__connection__password
+              value: ramanath
+            - name: database__connection__database
+              value: ghost
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "500m"
+            limits:
+              memory: "1024Mi"
+              cpu: "600m"
+          volumeMounts:
+            - name: ghost-storage
+              mountPath: "/var/lib/ghost/content"
+      volumes:
+        - name: ghost-volume
+          configMap:
+            name: db-config
+            defaultMode: 0777
+        - name: ghost-storage
+          persistentVolumeClaim:
+            claimName: ghost-pvc-claim
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ghost-svc
+spec:
+  type: NodePort
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 2368
+      nodePort: 30007
+      protocol: TCP 
+  selector:
+    app: ghost

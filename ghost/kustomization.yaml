@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: omegazyadav/ghost
+  newTag: 200914-91fcc374
+resources:
+- ghost.yml
+- mysql.yml
+- ingress.yml
+- configMap.yml
+- mysql_pv_pvc.yml
+- ghost_pv_pvc.yml
+
+secretGenerator:
+- name: mysql-sec
+  literals:
+  - USERNAME=root
+  - PASSWORD=ramanath
+  - DATABASE=ghost
+

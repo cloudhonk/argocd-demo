@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0.21
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-sec
+                  key: PASSWORD
+            - name: MYSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-sec 
+                  key: USERNAME
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-sec
+                  key: PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-sec
+                  key: DATABASE
+          livenessProbe:
+            exec:
+              command:
+              - bash
+              - "-c"
+              - |
+                set -ex
+                mysqladmin -p${MYSQL_ROOT_PASSWORD} ping &> /dev/null
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+              - bash
+              - "-c"
+              - |
+                set ex
+                mysql  -h 127.0.0.1 -u${MYSQL_USERNAME} -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1" &> /dev/null
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: "/var/lib/mysql"
+            - name: config
+              mountPath: /script/script.sh
+              subPath: script.sh 
+      volumes:
+        - name: config
+          configMap:
+            name: db-config   
+            defaultMode: 0777
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc-claim
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+  selector:
+    app: mysql
