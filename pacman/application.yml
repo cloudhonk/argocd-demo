@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pacman
+  namespace: pacman
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/cloudhonk/argocd-demo.git
+    targetRevision: HEAD
+    path: pacman
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
